@@ -1,6 +1,5 @@
 name: CI Pipeline
 
-# Kích hoạt robot khi có code push lên bất kỳ nhánh nào hoặc tạo Pull Request
 on:
   push:
     branches: ["**"] 
@@ -12,7 +11,6 @@ jobs:
     name: Build & Test
     runs-on: ubuntu-latest
 
-    # Khởi tạo Database Postgres để chạy Test
     services:
       db:
         image: postgres:15-alpine
@@ -29,37 +27,31 @@ jobs:
           --health-retries 5
 
     steps:
-        # Bước 1: Tải code từ GitHub về máy ảo
-        - name: Checkout code
-          uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-        # Bước 2: Cài đặt môi trường Node.js
-        - name: Setup Node.js
-          uses: actions/setup-node@v3
-          with:
-            node-version: '18'
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
 
-        # Bước 3: Tạo bảng dữ liệu (Để tránh lỗi 500 do Database trống)
-        # Bước 3: Tạo bảng dữ liệu (Dùng cách trực tiếp để tránh lỗi mật khẩu)
-        - name: Setup Database Table
-          run: |
-            docker run --network host postgres:15-alpine sh -c "PGPASSWORD=postgres psql -h localhost -U postgres -d devops_db -c 'CREATE TABLE IF NOT EXISTS todos (id SERIAL PRIMARY KEY, title TEXT NOT NULL, completed BOOLEAN DEFAULT FALSE);'"
-          env:
-            PGPASSWORD: postgres
+      # FIX: Tạo bảng tự động bằng cách lồng PGPASSWORD trực tiếp
+      - name: Setup Database Table
+        run: |
+          docker run --network host postgres:15-alpine sh -c "PGPASSWORD=postgres psql -h localhost -U postgres -d devops_db -c 'CREATE TABLE IF NOT EXISTS todos (id SERIAL PRIMARY KEY, title TEXT NOT NULL, completed BOOLEAN DEFAULT FALSE);'"
 
-        # Bước 4: Cài đặt thư viện
-        - name: Install dependencies
-          run: npm install
-          working-directory: ./backend
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./backend
 
-        # Bước 5: Chạy Test (Dùng forceExit để không bị treo robot)
-        - name: Run tests
-          run: npm test -- --forceExit --detectOpenHandles
-          working-directory: ./backend
-          env:
-            DB_HOST: localhost
-            DB_USER: postgres
-            DB_PASSWORD: postgres
-            DB_NAME: devops_db
-            DB_PORT: 5432
-            NODE_ENV: test
+      # FIX: Dùng các cờ mạnh nhất của Jest để ép đóng kết nối và chạy tuần tự
+      - name: Run tests
+        run: npm test -- --forceExit --detectOpenHandles --runInBand
+        working-directory: ./backend
+        env:
+          DB_HOST: localhost
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_NAME: devops_db
+          DB_PORT: 5432
+          NODE_ENV: test

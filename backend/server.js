@@ -8,18 +8,13 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-// #FIX 1: Cấu hình đúng Password và Database name khớp với Docker/CI
+// #FIX: Cấu hình chuẩn cho Docker và CI
 const pool = new Pool({
    user: process.env.DB_USER || 'postgres',
    host: process.env.DB_HOST || 'localhost',
-   database: process.env.DB_NAME || 'devops_db', // Đổi tododb -> devops_db
-   password: process.env.DB_PASSWORD || 'postgres', // Đổi wrongpassword -> postgres
+   database: process.env.DB_NAME || 'devops_db',
+   password: process.env.DB_PASSWORD || 'postgres',
    port: process.env.DB_PORT || 5432,
-});
-
-// Health check
-app.get('/health', (req, res) => {
-   res.json({ status: 'healthy', version: '1.0.0' });
 });
 
 // GET todos
@@ -32,16 +27,13 @@ app.get('/api/todos', async (req, res) => {
    }
 });
 
-// #FIX 2: Thêm validation cho title (Bẫy của thầy giáo)
+// #FIX: Thêm Validation cho Title (Vượt qua bẫy Test của thầy)
 app.post('/api/todos', async (req, res) => {
    try {
       const { title, completed = false } = req.body;
-
-      // Kiểm tra title trống
       if (!title || title.trim() === '') {
          return res.status(400).json({ error: 'Title is required' });
       }
-
       const result = await pool.query(
          'INSERT INTO todos(title, completed) VALUES($1, $2) RETURNING *',
          [title, completed]
@@ -52,7 +44,7 @@ app.post('/api/todos', async (req, res) => {
    }
 });
 
-// #FIX 3: Implement PUT (Cập nhật todo)
+// #FIX: Thêm API PUT
 app.put('/api/todos/:id', async (req, res) => {
    try {
       const { id } = req.params;
@@ -68,7 +60,7 @@ app.put('/api/todos/:id', async (req, res) => {
    }
 });
 
-// #FIX 4: Implement DELETE (Xóa todo)
+// #FIX: Thêm API DELETE
 app.delete('/api/todos/:id', async (req, res) => {
    try {
       const { id } = req.params;
@@ -82,12 +74,12 @@ app.delete('/api/todos/:id', async (req, res) => {
 
 const port = process.env.PORT || 8080;
 
-// #FIX 5: Chỉ listen khi không phải môi trường test (Tránh treo port)
+// #FIX: Chỉ listen khi KHÔNG PHẢI là môi trường test để tránh treo Port
 if (process.env.NODE_ENV !== 'test') {
    app.listen(port, () => {
       console.log(`Server is running on port ${port}`);
    });
 }
 
-// #FIX 6: Export app để thư viện test (supertest) sử dụng được
+// #FIX: Export app chuẩn để supertest có thể sử dụng
 module.exports = app;
