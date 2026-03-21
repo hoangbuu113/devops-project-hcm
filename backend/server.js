@@ -13,14 +13,14 @@ const pool = new Pool({
    host: process.env.DB_HOST || 'localhost',
    database: process.env.DB_NAME || 'devops_db',
    password: process.env.DB_PASSWORD || 'postgres',
-   port: process.env.DB_PORT || 5432,
+   port: 5432,
 });
 
-// Tự động tạo bảng
+// Tự động tạo bảng để tránh lỗi 500
 const initDb = async () => {
     try {
         await pool.query('CREATE TABLE IF NOT EXISTS todos (id SERIAL PRIMARY KEY, title TEXT NOT NULL, completed BOOLEAN DEFAULT FALSE);');
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error("DB Init Error:", err); }
 };
 initDb();
 
@@ -38,8 +38,8 @@ app.post('/api/todos', async (req, res) => {
       const { title, completed = false } = req.body;
       if (!title || title.trim() === '') return res.status(400).json({ error: 'Title required' });
       const result = await pool.query('INSERT INTO todos(title, completed) VALUES($1, $2) RETURNING *', [title, completed]);
-      // Sửa từ 201 thành 200 để khớp với test của thầy
-      res.status(200).json(result.rows[0]);
+      // Trả về 201 đúng ý thầy trong log
+      res.status(201).json(result.rows[0]);
    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -56,14 +56,14 @@ app.delete('/api/todos/:id', async (req, res) => {
    try {
       const { id } = req.params;
       await pool.query('DELETE FROM todos WHERE id = $1', [id]);
-      // Sửa từ 204 thành 200 vì thầy mong đợi status 200
+      // Trả về 200 thay vì 204 để khớp với test
       res.status(200).json({ message: 'Deleted' });
    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 const port = 8080;
 if (process.env.NODE_ENV !== 'test') {
-   app.listen(port, () => console.log(`Run on ${port}`));
+   app.listen(port, () => console.log(`Server running on port ${port}`));
 }
 
 module.exports = app;
