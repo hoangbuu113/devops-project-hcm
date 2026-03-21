@@ -16,50 +16,55 @@ const pool = new Pool({
    port: 5432,
 });
 
-// Tự động tạo bảng để tránh lỗi 500
-const initDb = async () => {
-    try {
-        await pool.query('CREATE TABLE IF NOT EXISTS todos (id SERIAL PRIMARY KEY, title TEXT NOT NULL, completed BOOLEAN DEFAULT FALSE);');
-    } catch (err) { console.error("DB Init Error:", err); }
-};
-initDb();
-
-app.get('/health', (req, res) => res.status(200).json({ status: 'healthy', version: '1.0.0' }));
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'healthy', version: '1.0.0' });
+});
 
 app.get('/api/todos', async (req, res) => {
    try {
       const result = await pool.query('SELECT * FROM todos ORDER BY id');
       res.status(200).json(result.rows);
-   } catch (err) { res.status(500).json({ error: err.message }); }
+   } catch (err) {
+      res.status(500).json({ error: err.message });
+   }
 });
 
 app.post('/api/todos', async (req, res) => {
    try {
       const { title, completed = false } = req.body;
-      if (!title || title.trim() === '') return res.status(400).json({ error: 'Title required' });
-      const result = await pool.query('INSERT INTO todos(title, completed) VALUES($1, $2) RETURNING *', [title, completed]);
-      // Trả về 201 đúng ý thầy trong log
+      if (!title || title.trim() === '') {
+          return res.status(400).json({ error: 'Title required' });
+      }
+      const result = await pool.query(
+         'INSERT INTO todos (title, completed) VALUES ($1, $2) RETURNING *',
+         [title, completed]
+      );
       res.status(201).json(result.rows[0]);
-   } catch (err) { res.status(500).json({ error: err.message }); }
+   } catch (err) {
+      res.status(500).json({ error: err.message });
+   }
 });
 
+// STUDENT TODO: Thêm API PUT và DELETE (Nếu đề bài yêu cầu)
 app.put('/api/todos/:id', async (req, res) => {
-   try {
-      const { id } = req.params;
-      const { title, completed } = req.body;
-      const result = await pool.query('UPDATE todos SET title = $1, completed = $2 WHERE id = $3 RETURNING *', [title, completed, id]);
-      res.status(200).json(result.rows[0]);
-   } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-app.delete('/api/todos/:id', async (req, res) => {
-   try {
-      const { id } = req.params;
-      await pool.query('DELETE FROM todos WHERE id = $1', [id]);
-      // Trả về 200 thay vì 204 để khớp với test
-      res.status(200).json({ message: 'Deleted' });
-   } catch (err) { res.status(500).json({ error: err.message }); }
-});
+    try {
+       const { id } = req.params;
+       const { title, completed } = req.body;
+       const result = await pool.query(
+          'UPDATE todos SET title = $1, completed = $2 WHERE id = $3 RETURNING *',
+          [title, completed, id]
+       );
+       res.status(200).json(result.rows[0]);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+ });
+ 
+ app.delete('/api/todos/:id', async (req, res) => {
+    try {
+       const { id } = req.params;
+       await pool.query('DELETE FROM todos WHERE id = $1', [id]);
+       res.status(200).json({ message: 'Deleted' });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+ });
 
 const port = 8080;
 if (process.env.NODE_ENV !== 'test') {
