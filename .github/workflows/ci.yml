@@ -38,3 +38,18 @@ jobs:
           DB_NAME: devops_db
           DB_PORT: 5432
           NODE_ENV: test
+          # Bước 6: Đăng nhập vào Docker Hub sử dụng Secrets vừa tạo
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Bước 7: Build Image từ Dockerfile và Push lên Docker Hub
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          push: true
+          # Image sẽ có tên là: username/tên-repo:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/devops-backend:latest
