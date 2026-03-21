@@ -15,11 +15,11 @@ jobs:
     # Khởi tạo Database Postgres để chạy Test
     services:
       db:
-        image: postgres:15-alpine # Dùng bản 15 giống Lab 2
-        environment:
-          - POSTGRES_USER=postgres
-          - POSTGRES_PASSWORD=postgres
-          - POSTGRES_DB=devops_db
+        image: postgres:15-alpine
+        env: # <--- Đổi chữ environment thành env
+          POSTGRES_USER: postgres 
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: devops_db
         ports:
           - 5432:5432
         options: >-
