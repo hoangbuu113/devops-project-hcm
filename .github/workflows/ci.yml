@@ -3,7 +3,7 @@ name: CI Pipeline
 # Kích hoạt robot khi có code push lên main hoặc tạo Pull Request
 on:
   push:
-    branches: [ main ]
+    branches: ["**"] 
   pull_request:
     branches: [ main ]
 
