@@ -1,6 +1,6 @@
 name: CI Pipeline
 
-# Kích hoạt robot khi có code push lên main hoặc tạo Pull Request
+# Kích hoạt robot khi có code push lên bất kỳ nhánh nào hoặc tạo Pull Request
 on:
   push:
     branches: ["**"] 
@@ -16,8 +16,8 @@ jobs:
     services:
       db:
         image: postgres:15-alpine
-        env: # <--- Đổi chữ environment thành env
-          POSTGRES_USER: postgres 
+        env:
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: devops_db
         ports:
@@ -39,12 +39,20 @@ jobs:
           with:
             node-version: '18'
 
-        # Bước 3: Cài đặt thư viện (Lưu ý: Phải chui vào thư mục backend)
+        # Bước 3: Tạo bảng dữ liệu (Để tránh lỗi 500 do Database trống)
+        - name: Setup Database Table
+          run: |
+            # Chờ database sẵn sàng và tạo bảng todos
+            docker run --network host postgres:15-alpine psql -h localhost -U postgres -d devops_db -c "CREATE TABLE IF NOT EXISTS todos (id SERIAL PRIMARY KEY, title TEXT NOT NULL, completed BOOLEAN DEFAULT FALSE);"
+          env:
+            PGPASSWORD: postgres
+
+        # Bước 4: Cài đặt thư viện
         - name: Install dependencies
           run: npm install
           working-directory: ./backend
 
-# Bước 4: Chạy Test và ép đóng kết nối sau khi xong
+        # Bước 5: Chạy Test (Dùng forceExit để không bị treo robot)
         - name: Run tests
           run: npm test -- --forceExit --detectOpenHandles
           working-directory: ./backend
@@ -54,3 +62,4 @@ jobs:
             DB_PASSWORD: postgres
             DB_NAME: devops_db
             DB_PORT: 5432
+            NODE_ENV: test
