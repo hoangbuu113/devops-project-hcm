@@ -8,15 +8,16 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-// BUG #1: Wrong default password - doesn't match docker-compose!
+// #FIX 1: Cấu hình đúng Password và Database name khớp với Docker/CI
 const pool = new Pool({
    user: process.env.DB_USER || 'postgres',
    host: process.env.DB_HOST || 'localhost',
-   database: process.env.DB_NAME || 'tododb',
-   password: process.env.DB_PASSWORD || 'wrongpassword',
+   database: process.env.DB_NAME || 'devops_db', // Đổi tododb -> devops_db
+   password: process.env.DB_PASSWORD || 'postgres', // Đổi wrongpassword -> postgres
    port: process.env.DB_PORT || 5432,
 });
 
+// Health check
 app.get('/health', (req, res) => {
    res.json({ status: 'healthy', version: '1.0.0' });
 });
@@ -31,15 +32,15 @@ app.get('/api/todos', async (req, res) => {
    }
 });
 
-// BUG #2: Missing validation - will cause test to fail!
-// STUDENT TODO: Add validation to reject empty title
+// #FIX 2: Thêm validation cho title (Bẫy của thầy giáo)
 app.post('/api/todos', async (req, res) => {
    try {
       const { title, completed = false } = req.body;
 
-      // STUDENT FIX: Add validation here!
-      // Hint: Check if title is empty or undefined
-      // Return 400 status with error message if invalid
+      // Kiểm tra title trống
+      if (!title || title.trim() === '') {
+         return res.status(400).json({ error: 'Title is required' });
+      }
 
       const result = await pool.query(
          'INSERT INTO todos(title, completed) VALUES($1, $2) RETURNING *',
@@ -51,23 +52,42 @@ app.post('/api/todos', async (req, res) => {
    }
 });
 
-// BUG #3: Missing DELETE endpoint - but test expects it!
-// STUDENT TODO: Implement DELETE /api/todos/:id endpoint
+// #FIX 3: Implement PUT (Cập nhật todo)
+app.put('/api/todos/:id', async (req, res) => {
+   try {
+      const { id } = req.params;
+      const { title, completed } = req.body;
+      const result = await pool.query(
+         'UPDATE todos SET title = $1, completed = $2 WHERE id = $3 RETURNING *',
+         [title, completed, id]
+      );
+      if (result.rows.length === 0) return res.status(404).send();
+      res.json(result.rows[0]);
+   } catch (err) {
+      res.status(500).json({ error: err.message });
+   }
+});
 
-// BUG #4: Missing PUT endpoint for updating todos
-// STUDENT TODO: Implement PUT /api/todos/:id endpoint
+// #FIX 4: Implement DELETE (Xóa todo)
+app.delete('/api/todos/:id', async (req, res) => {
+   try {
+      const { id } = req.params;
+      const result = await pool.query('DELETE FROM todos WHERE id = $1 RETURNING *', [id]);
+      if (result.rows.length === 0) return res.status(404).send();
+      res.status(204).send();
+   } catch (err) {
+      res.status(500).json({ error: err.message });
+   }
+});
 
-const app = require('./app'); // Đảm bảo đường dẫn đúng tới file app.js
 const port = process.env.PORT || 8080;
 
-// BUG #5: Server starts even in test mode, causing port conflicts
-// STUDENT FIX: Only start server if NOT in test mode
-// Chỉ khởi động server nếu KHÔNG PHẢI đang trong môi trường test
+// #FIX 5: Chỉ listen khi không phải môi trường test (Tránh treo port)
 if (process.env.NODE_ENV !== 'test') {
-    app.listen(port, () => {
-        console.log(`Server is running on port ${port}`);
-    });
+   app.listen(port, () => {
+      console.log(`Server is running on port ${port}`);
+   });
 }
 
-// BUG #6: App not exported - tests can't import it!
-// STUDENT FIX: Export the app module
+// #FIX 6: Export app để thư viện test (supertest) sử dụng được
+module.exports = app;
