@@ -40,10 +40,10 @@ jobs:
             node-version: '18'
 
         # Bước 3: Tạo bảng dữ liệu (Để tránh lỗi 500 do Database trống)
+        # Bước 3: Tạo bảng dữ liệu (Dùng cách trực tiếp để tránh lỗi mật khẩu)
         - name: Setup Database Table
           run: |
-            # Chờ database sẵn sàng và tạo bảng todos
-            docker run --network host postgres:15-alpine psql -h localhost -U postgres -d devops_db -c "CREATE TABLE IF NOT EXISTS todos (id SERIAL PRIMARY KEY, title TEXT NOT NULL, completed BOOLEAN DEFAULT FALSE);"
+            docker run --network host postgres:15-alpine sh -c "PGPASSWORD=postgres psql -h localhost -U postgres -d devops_db -c 'CREATE TABLE IF NOT EXISTS todos (id SERIAL PRIMARY KEY, title TEXT NOT NULL, completed BOOLEAN DEFAULT FALSE);'"
           env:
             PGPASSWORD: postgres
 
