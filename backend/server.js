@@ -8,7 +8,7 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-// #FIX: Cấu hình chuẩn cho Docker và CI
+// FIX: Cấu hình chuẩn cho Docker và CI
 const pool = new Pool({
    user: process.env.DB_USER || 'postgres',
    host: process.env.DB_HOST || 'localhost',
@@ -27,7 +27,7 @@ app.get('/api/todos', async (req, res) => {
    }
 });
 
-// #FIX: Thêm Validation cho Title (Vượt qua bẫy Test của thầy)
+// POST todo + Validation (Vượt bẫy test)
 app.post('/api/todos', async (req, res) => {
    try {
       const { title, completed = false } = req.body;
@@ -44,7 +44,7 @@ app.post('/api/todos', async (req, res) => {
    }
 });
 
-// #FIX: Thêm API PUT
+// PUT todo
 app.put('/api/todos/:id', async (req, res) => {
    try {
       const { id } = req.params;
@@ -60,7 +60,7 @@ app.put('/api/todos/:id', async (req, res) => {
    }
 });
 
-// #FIX: Thêm API DELETE
+// DELETE todo
 app.delete('/api/todos/:id', async (req, res) => {
    try {
       const { id } = req.params;
@@ -74,12 +74,11 @@ app.delete('/api/todos/:id', async (req, res) => {
 
 const port = process.env.PORT || 8080;
 
-// #FIX: Chỉ listen khi KHÔNG PHẢI là môi trường test để tránh treo Port
+// FIX: Chỉ listen khi không phải môi trường test
 if (process.env.NODE_ENV !== 'test') {
    app.listen(port, () => {
       console.log(`Server is running on port ${port}`);
    });
 }
 
-// #FIX: Export app chuẩn để supertest có thể sử dụng
 module.exports = app;

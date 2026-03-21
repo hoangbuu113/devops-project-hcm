@@ -35,7 +35,6 @@ jobs:
         with:
           node-version: '18'
 
-      # FIX: Tạo bảng tự động bằng cách lồng PGPASSWORD trực tiếp
       - name: Setup Database Table
         run: |
           docker run --network host postgres:15-alpine sh -c "PGPASSWORD=postgres psql -h localhost -U postgres -d devops_db -c 'CREATE TABLE IF NOT EXISTS todos (id SERIAL PRIMARY KEY, title TEXT NOT NULL, completed BOOLEAN DEFAULT FALSE);'"
@@ -44,8 +43,8 @@ jobs:
         run: npm install
         working-directory: ./backend
 
-      # FIX: Dùng các cờ mạnh nhất của Jest để ép đóng kết nối và chạy tuần tự
       - name: Run tests
+        # FIX: Dùng --forceExit và --runInBand để dứt điểm lỗi TCPWRAP
         run: npm test -- --forceExit --detectOpenHandles --runInBand
         working-directory: ./backend
         env:
