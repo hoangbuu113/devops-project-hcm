@@ -57,6 +57,7 @@ app.post('/api/todos', async (req, res) => {
 // BUG #4: Missing PUT endpoint for updating todos
 // STUDENT TODO: Implement PUT /api/todos/:id endpoint
 
+const app = require('./app'); // Đảm bảo đường dẫn đúng tới file app.js
 const port = process.env.PORT || 8080;
 
 // BUG #5: Server starts even in test mode, causing port conflicts
@@ -64,7 +65,7 @@ const port = process.env.PORT || 8080;
 // Chỉ khởi động server nếu KHÔNG PHẢI đang trong môi trường test
 if (process.env.NODE_ENV !== 'test') {
     app.listen(port, () => {
-        console.log(`Backend running on port ${port}`);
+        console.log(`Server is running on port ${port}`);
     });
 }
 
