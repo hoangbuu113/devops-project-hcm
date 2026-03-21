@@ -44,9 +44,9 @@ jobs:
           run: npm install
           working-directory: ./backend
 
-        # Bước 4: Chạy Test với thông tin Database thật
+# Bước 4: Chạy Test và ép đóng kết nối sau khi xong
         - name: Run tests
-          run: npm test
+          run: npm test -- --exit # Thêm cờ --exit để tự thoát
           working-directory: ./backend
           env:
             DB_HOST: localhost
