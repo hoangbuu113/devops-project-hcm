@@ -8,7 +8,6 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-// FIX: Cấu hình chuẩn cho Docker và CI
 const pool = new Pool({
    user: process.env.DB_USER || 'postgres',
    host: process.env.DB_HOST || 'localhost',
@@ -17,7 +16,22 @@ const pool = new Pool({
    port: process.env.DB_PORT || 5432,
 });
 
-// GET todos
+// TỰ ĐỘNG TẠO BẢNG - Giải pháp dứt điểm lỗi 500
+const initDb = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS todos (
+                id SERIAL PRIMARY KEY,
+                title TEXT NOT NULL,
+                completed BOOLEAN DEFAULT FALSE
+            );
+        `);
+    } catch (err) {
+        console.error('DB Init Error:', err);
+    }
+};
+initDb();
+
 app.get('/api/todos', async (req, res) => {
    try {
       const result = await pool.query('SELECT * FROM todos ORDER BY id');
@@ -27,7 +41,6 @@ app.get('/api/todos', async (req, res) => {
    }
 });
 
-// POST todo + Validation (Vượt bẫy test)
 app.post('/api/todos', async (req, res) => {
    try {
       const { title, completed = false } = req.body;
@@ -44,7 +57,6 @@ app.post('/api/todos', async (req, res) => {
    }
 });
 
-// PUT todo
 app.put('/api/todos/:id', async (req, res) => {
    try {
       const { id } = req.params;
@@ -60,7 +72,6 @@ app.put('/api/todos/:id', async (req, res) => {
    }
 });
 
-// DELETE todo
 app.delete('/api/todos/:id', async (req, res) => {
    try {
       const { id } = req.params;
@@ -73,12 +84,8 @@ app.delete('/api/todos/:id', async (req, res) => {
 });
 
 const port = process.env.PORT || 8080;
-
-// FIX: Chỉ listen khi không phải môi trường test
 if (process.env.NODE_ENV !== 'test') {
-   app.listen(port, () => {
-      console.log(`Server is running on port ${port}`);
-   });
+   app.listen(port, () => console.log(`Server running on port ${port}`));
 }
 
 module.exports = app;
