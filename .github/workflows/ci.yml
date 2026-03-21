@@ -1,0 +1,56 @@
+name: CI Pipeline
+
+# Kích hoạt robot khi có code push lên main hoặc tạo Pull Request
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    # Khởi tạo Database Postgres để chạy Test
+    services:
+      db:
+        image: postgres:15-alpine # Dùng bản 15 giống Lab 2
+        environment:
+          - POSTGRES_USER=postgres
+          - POSTGRES_PASSWORD=postgres
+          - POSTGRES_DB=devops_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready 
+          --health-interval 10s 
+          --health-timeout 5s 
+          --health-retries 5
+
+    steps:
+        # Bước 1: Tải code từ GitHub về máy ảo
+        - name: Checkout code
+          uses: actions/checkout@v3
+
+        # Bước 2: Cài đặt môi trường Node.js
+        - name: Setup Node.js
+          uses: actions/setup-node@v3
+          with:
+            node-version: '18'
+
+        # Bước 3: Cài đặt thư viện (Lưu ý: Phải chui vào thư mục backend)
+        - name: Install dependencies
+          run: npm install
+          working-directory: ./backend
+
+        # Bước 4: Chạy Test với thông tin Database thật
+        - name: Run tests
+          run: npm test
+          working-directory: ./backend
+          env:
+            DB_HOST: localhost
+            DB_USER: postgres
+            DB_PASSWORD: postgres
+            DB_NAME: devops_db
+            DB_PORT: 5432
