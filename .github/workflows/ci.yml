@@ -46,7 +46,7 @@ jobs:
 
 # Bước 4: Chạy Test và ép đóng kết nối sau khi xong
         - name: Run tests
-          run: npm test -- --exit # Thêm cờ --exit để tự thoát
+          run: npm test -- --forceExit --detectOpenHandles
           working-directory: ./backend
           env:
             DB_HOST: localhost
