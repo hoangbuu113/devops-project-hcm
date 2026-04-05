@@ -65,5 +65,4 @@ app.listen(port, () => {
    console.log(`Backend running on port ${port}`);
 });
 
-// BUG #6: App not exported - tests can't import it!
-// STUDENT FIX: Export the app module
+module.exports = app;
