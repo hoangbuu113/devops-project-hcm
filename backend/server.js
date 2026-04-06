@@ -12,20 +12,20 @@ app.use(express.json());
 const pool = new Pool({
     user: process.env.DB_USER || 'postgres',
     host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'devops_db', // Đổi từ tododb thành devops_db
-    password: process.env.DB_PASSWORD || 'postgres', // Đổi từ wrongpassword thành postgres
+    database: process.env.DB_NAME || 'devops_db',
+    password: process.env.DB_PASSWORD || 'postgres',
     port: process.env.DB_PORT || 5432,
 });
 
 app.get('/health', (req, res) => {
-    res.json({ status: 'healthy', version: '1.0.0' });
+    res.status(200).json({ status: 'healthy', version: '1.0.0' });
 });
 
 // GET todos
 app.get('/api/todos', async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM todos ORDER BY id');
-        res.json(result.rows);
+        res.status(200).json(result.rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -35,7 +35,6 @@ app.get('/api/todos', async (req, res) => {
 app.post('/api/todos', async (req, res) => {
     const { title, completed = false } = req.body;
 
-    // Chặn nếu title không có hoặc chỉ toàn dấu cách
     if (!title || title.trim() === '') {
         return res.status(400).json({ error: 'Title is required' });
     }
@@ -86,7 +85,6 @@ app.put('/api/todos/:id', async (req, res) => {
 const port = process.env.PORT || 8080;
 
 // FIX BUG #5: Chỉ khởi động server khi KHÔNG phải đang chạy Test
-// Việc này giúp tránh lỗi "Port 8080 already in use" khi chạy GitHub Actions
 if (process.env.NODE_ENV !== 'test') {
     app.listen(port, () => {
         console.log(`Backend running on port ${port}`);

@@ -1,8 +1,10 @@
-name: CI Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: ["**"]
+    branches: ["main", "feature/**"]
+  pull_request:
+    branches: ["main"]
 
 jobs:
   build-and-test:
@@ -52,7 +54,7 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_PASSWORD }}
 
-      - name: Build and push Docker image
+      - name: Build and push Backend Image
         uses: docker/build-push-action@v4
         with:
           context: ./backend
@@ -76,3 +78,4 @@ jobs:
             git pull origin main
             docker-compose pull
             docker-compose up -d
+            
