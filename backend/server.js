@@ -55,10 +55,10 @@ app.delete('/api/todos/:id', async (req, res) => {
     const { id } = req.params;
     try {
         const result = await pool.query('DELETE FROM todos WHERE id = $1 RETURNING *', [id]);
-        if (result.rowCount === 0) {
+        if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Todo not found' });
         }
-        res.status(200).json({ message: 'Todo deleted successfully' });
+        res.status(200).json(result.rows[0]);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -68,12 +68,17 @@ app.delete('/api/todos/:id', async (req, res) => {
 app.put('/api/todos/:id', async (req, res) => {
     const { id } = req.params;
     const { title, completed } = req.body;
+    
+    if (!title || title.trim() === '') {
+        return res.status(400).json({ error: 'Title is required' });
+    }
+    
     try {
         const result = await pool.query(
             'UPDATE todos SET title = $1, completed = $2 WHERE id = $3 RETURNING *',
             [title, completed, id]
         );
-        if (result.rowCount === 0) {
+        if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Todo not found' });
         }
         res.status(200).json(result.rows[0]);
