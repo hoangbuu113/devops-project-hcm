@@ -74,18 +74,18 @@ jobs:
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
           script: |
-           script: |
+            mkdir -p /var/www/devops-project-hcm
             cd /var/www/devops-project-hcm
+            if [ ! -d ".git" ]; then
+              git clone https://github.com/hoangbuu113/devops-project-hcm.git .
+            fi
+            git fetch origin hoang-buu
             git checkout hoang-buu || git checkout -b hoang-buu
             git pull origin hoang-buu
             
-            # 1. Tìm và tiêu diệt bất kỳ tiến trình nào đang chiếm cổng 8080 và 3000
-            sudo fuser -k 8080/tcp || true
-            sudo fuser -k 3000/tcp || true
+            fuser -k 8080/tcp || true
+            fuser -k 3000/tcp || true
             
-            # 2. Dọn dẹp sạch sẽ các container cũ
-            docker-compose down --remove-orphans
-            
-            # 3. Chạy bản mới
+            docker-compose down --remove-orphans || true
             docker-compose pull
             docker-compose up -d
