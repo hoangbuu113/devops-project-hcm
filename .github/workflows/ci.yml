@@ -74,18 +74,23 @@ jobs:
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
           script: |
-            mkdir -p /var/www/devops-project-hcm
-            cd /var/www/devops-project-hcm
+            cd /var/www/devops-project-hcm || mkdir -p /var/www/devops-project-hcm && cd /var/www/devops-project-hcm
             if [ ! -d ".git" ]; then
               git clone https://github.com/hoangbuu113/devops-project-hcm.git .
             fi
             git fetch origin hoang-buu
-            git checkout hoang-buu || git checkout -b hoang-buu
+            git checkout hoang-buu
             git pull origin hoang-buu
             
-            fuser -k 8080/tcp || true
-            fuser -k 3000/tcp || true
+            # --- CHIÊU CUỐI: DỌN SẠCH SERVER ---
+            # 1. Dừng tất cả container đang chạy trên server để giải phóng cổng
+            docker stop $(docker ps -aq) || true
+            docker rm $(docker ps -aq) || true
             
-            docker-compose down --remove-orphans || true
+            # 2. Kill triệt để các tiến trình chạy ngầm ở cổng 8080 và 3000
+            sudo fuser -k 8080/tcp || true
+            sudo fuser -k 3000/tcp || true
+            
+            # 3. Khởi động lại hệ thống mới
             docker-compose pull
             docker-compose up -d
