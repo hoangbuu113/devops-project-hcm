@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: ["main", "feature/**"]
+    branches: ["main", "hoang-buu", "feature/**"]
   pull_request:
-    branches: ["main"]
+    branches: ["main", "hoang-buu"]
 
 jobs:
   build-and-test:
@@ -65,7 +65,7 @@ jobs:
     name: Deploy to Server
     runs-on: ubuntu-latest
     needs: build-and-test
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/hoang-buu' || github.ref == 'refs/heads/main'
     steps:
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@master
@@ -74,8 +74,18 @@ jobs:
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
           script: |
+           script: |
             cd /var/www/devops-project-hcm
-            git pull origin main
+            git checkout hoang-buu || git checkout -b hoang-buu
+            git pull origin hoang-buu
+            
+            # 1. Tìm và tiêu diệt bất kỳ tiến trình nào đang chiếm cổng 8080 và 3000
+            sudo fuser -k 8080/tcp || true
+            sudo fuser -k 3000/tcp || true
+            
+            # 2. Dọn dẹp sạch sẽ các container cũ
+            docker-compose down --remove-orphans
+            
+            # 3. Chạy bản mới
             docker-compose pull
             docker-compose up -d
-            
