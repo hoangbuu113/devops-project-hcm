@@ -1,20 +1,33 @@
-# Bước 1: Dùng Node.js làm nền tảng
-FROM node:18-alpine
+# -------- Giai đoạn 1: Builder (Cài đặt và chuẩn bị) --------
+FROM node:18-alpine AS builder
 
-# Bước 2: Tạo thư mục làm việc trong container
 WORKDIR /app
 
-# Bước 3: Copy các file quản lý thư viện vào trước
+# Copy file quản lý thư viện
 COPY package*.json ./
 
-# Bước 4: Cài đặt các thư viện (dependencies)
+# Cài đặt tất cả thư viện (kể cả devDependencies để chạy test nếu cần)
 RUN npm install
 
-# Bước 5: Copy toàn bộ code từ máy mình vào container
+# Copy toàn bộ code nguồn
 COPY . .
 
-# Bước 6: Mở cổng 8080 để web có thể chạy
+# -------- Giai đoạn 2: Production (Chỉ giữ lại những gì cần để chạy) --------
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Chỉ copy file package.json để chạy lệnh start
+COPY package*.json ./
+
+# Chỉ cài đặt thư viện cần thiết cho môi trường chạy (Production) để giảm dung lượng
+RUN npm install --only=production
+
+# Copy file server.js từ giai đoạn builder sang
+COPY --from=builder /app/server.js ./
+
+# Mở cổng 8080 cho Backend
 EXPOSE 8080
 
-# Bước 7: Lệnh thần thánh để khởi động server
+# Lệnh khởi động server
 CMD ["node", "server.js"]
