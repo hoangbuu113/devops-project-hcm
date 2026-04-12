@@ -1,19 +1,12 @@
-
-
-version: '3.8'
-
 services:
-
   frontend:
     build: ./frontend
     ports:
-      - "3000:3000"
+      - "3000:80"    
     depends_on:
       - backend
 
-
   backend:
-
     build: ./backend
     ports:
       - "8080:8080"
@@ -26,16 +19,13 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    # Đã đơn giản hóa để tránh báo unhealthy oan
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-
   postgres:
-
     image: postgres:15-alpine
     environment:
       POSTGRES_DB: devops_db
@@ -45,13 +35,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d devops_db"]
       interval: 10s
       timeout: 5s
       retries: 5
-
 
 volumes:
   postgres_data:
