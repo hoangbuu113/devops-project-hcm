@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 
-const API_URL = "http://103.1.236.26:8080";
+// STUDENT TODO: This API_URL works for local development
+// For Docker, you may need to configure nginx proxy or use container networking
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:18081';
 
 function App() {
   const [todos, setTodos] = useState([]);
@@ -16,7 +18,7 @@ function App() {
       const data = await res.json();
       setTodos(data);
     } catch (err) {
-      console.error(err);
+      console.error('Fetch error:', err);
     }
   };
 
@@ -36,10 +38,27 @@ function App() {
     }
   };
 
+  const deleteTodo = async (id) => {
+    try {
+      const res = await fetch(`${API_URL}/api/todos/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to delete todo');
+      }
+
+      fetchTodos();
+    } catch (err) {
+      alert('Xóa todo thất bại');
+      console.error('Delete error:', err);
+    }
+  };
+
   return (
     <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
       <h1>🚀 DevOps Todo App</h1>
-      <p>Bửu & Phong - Deploy CI/CD Success! 🏆</p>
+      <p>Demo: Watch UI update LIVE after CI/CD! ✨</p>
 
       <div style={{ marginBottom: '20px' }}>
         <input
@@ -54,21 +73,49 @@ function App() {
       </div>
 
       <ul style={{ listStyle: 'none', padding: 0 }}>
-        {todos.map(todo => (
-          <li key={todo.id} style={{
-            padding: '10px',
-            border: '1px solid #ddd',
-            marginBottom: '5px',
-            display: 'flex',
-            justifyContent: 'space-between'
-          }}>
-            <span>{todo.title}</span>
-            <small>{todo.completed ? '✅' : '⏳'}</small>
+        {todos.map((todo) => (
+          <li
+            key={todo.id}
+            style={{
+              padding: '10px',
+              border: '1px solid #ddd',
+              marginBottom: '5px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+          >
+            <div>
+              <span>{todo.title}</span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <small>{todo.completed ? '✅' : '⏳'}</small>
+              <button
+                onClick={() => deleteTodo(todo.id)}
+                style={{
+                  padding: '6px 12px',
+                  cursor: 'pointer'
+                }}
+              >
+                Delete
+              </button>
+            </div>
           </li>
         ))}
       </ul>
-     </div>
+
+      <div style={{ marginTop: '30px', fontSize: '12px', color: '#666' }}>
+        <p><strong>STUDENT TODO:</strong></p>
+        <ul>
+          <li>Dockerfile (multi-stage)</li>
+          <li>Fix backend validation (broken test)</li>
+          <li>CI/CD pipeline</li>
+          <li>REPORT.md + Slides</li>
+        </ul>
+      </div>
+    </div>
   );
 }
 
- export default App;
+export default App;
