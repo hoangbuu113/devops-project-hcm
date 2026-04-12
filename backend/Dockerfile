@@ -1,13 +1,18 @@
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-RUN npm run build
-
 FROM node:18-alpine
+
 WORKDIR /app
-RUN npm install -g serve
-COPY --from=builder /app/build ./build
-EXPOSE 3000
-CMD ["serve", "-s", "build", "-l", "3000"]
+
+# 1. Copy file quản lý thư viện
+COPY package*.json ./
+
+# 2. Cài đặt thư viện (như Express, pg...)
+RUN npm install
+
+# 3. Copy code nguồn (server.js, routes...)
+COPY . .
+
+# 4. Mở cổng 8080 cho Backend
+EXPOSE 8080
+
+# 5. Chạy trực tiếp bằng node (Đúng chuẩn Lab 3)
+CMD ["node", "server.js"]
