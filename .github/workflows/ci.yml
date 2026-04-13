@@ -2,76 +2,95 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: ["main", "hoang-buu", "feature/**"]
-  pull_request:
     branches: ["main", "hoang-buu"]
+  pull_request:
+    branches: ["main"]
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
     services:
-      db:
+      postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: devops_db
+          POSTGRES_USER: devops_user
+          POSTGRES_PASSWORD: devops_password
         ports:
           - 5432:5432
-        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
-    
+        options: >-
+          --health-cmd="pg_isready -U devops_user -d devops_db"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: devops_db
+      DB_USER: devops_user
+      DB_PASSWORD: devops_password
+      NODE_ENV: test
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: 18
 
-      - name: Install dependencies
-        run: npm install
-        working-directory: ./backend
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
-      - name: Setup DB Table
-        run: |
-          docker run --network host postgres:15-alpine sh -c "PGPASSWORD=postgres psql -h localhost -U postgres -d devops_db -c 'CREATE TABLE IF NOT EXISTS todos (id SERIAL PRIMARY KEY, title TEXT NOT NULL, completed BOOLEAN DEFAULT FALSE);'"
-
-      - name: Run Tests
-        run: npm test -- --forceExit --runInBand
-        working-directory: ./backend
+      - name: Initialize test database
         env:
-          DB_HOST: localhost
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_NAME: devops_db
-          DB_PORT: 5432
-          NODE_ENV: test
+          PGPASSWORD: devops_password
+        run: |
+          until pg_isready -h localhost -p 5432 -U devops_user; do
+            sleep 1
+          done
+          if [ -f ./database/database.sql ]; then
+            psql -h localhost -U devops_user -d devops_db -f ./database/database.sql
+          else
+            psql -h localhost -U devops_user -d devops_db -c "CREATE TABLE IF NOT EXISTS todos (id SERIAL PRIMARY KEY, title TEXT NOT NULL, completed BOOLEAN DEFAULT FALSE);"
+          fi
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_PASSWORD }}
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm install
 
-      - name: Build and push Backend Image
-        uses: docker/build-push-action@v4
-        with:
-          context: ./backend
-          push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/devops-backend:latest
+      - name: Run backend tests
+        working-directory: ./backend
+        run: npm test -- --forceExit --runInBand
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: |
+          npm install
+          npm run build
 
   deploy:
-    name: Deploy to Server
     runs-on: ubuntu-latest
     needs: build-and-test
-    if: github.ref == 'refs/heads/hoang-buu' || github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
     steps:
       - name: Deploy to Server via SSH
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
           script: |
-           
+            cd ~/devops-project-hcm
+            git fetch origin
+            git reset --hard origin/main
+            sudo fuser -k 8080/tcp || true
+            sudo fuser -k 3000/tcp || true
+            docker-compose down --remove-orphans || true
+            docker-compose up -d --build
+            sleep 20
+            docker ps

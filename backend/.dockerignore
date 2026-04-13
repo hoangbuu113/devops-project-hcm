@@ -1,11 +1,6 @@
-# Ignore the local dependencies
 node_modules
-# Ignore Git files
+npm-debug.log
 .git
 .gitignore
-# Ignore Docker files
-Dockerfile
-.dockerignore
-docker-compose.yml
-# Ignore local environment files
 .env
+coverage
